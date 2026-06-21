@@ -9,6 +9,7 @@ pinned: false
 ---
 
 # 🎵 Zapp-tain America — Audio Identifier
+[Try the App](https://ee200-course-project-d7vldiwaojzjkdfnpf2xgh.streamlit.app/#zapp-tain-america-audio-identifier)
 
 A from-scratch, **Shazam-style audio fingerprinting and song-identification system**, wrapped in an interactive Streamlit web app. Upload a short clip of a song and the app tells you which track in its library the clip came from — and shows you every intermediate step it used to reach that decision.
 
