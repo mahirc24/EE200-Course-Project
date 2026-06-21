@@ -1,16 +1,32 @@
 """
-app.py  -  Q3B "Zapp-tain America": a Shazam-style song identifier (Streamlit).
+app.py - "Zapp-tain America": a Shazam-style song identifier (Streamlit).
 
 Two modes:
   * Single clip - identify one uploaded clip and show the intermediate steps
     (spectrogram, constellation of peaks, offset histogram that decides the match).
-  * Batch       - identify a set of clips and download results.csv with columns
-    exactly:  filename,prediction   (prediction = matched song's filename, no extension).
+  * Batch - identify a set of clips and download results.csv with columns
+    exactly: filename,prediction.
 
-The song database is indexed once by build_database.py into database.pkl, which
-ships with the app so it works immediately on deploy.
+The song database is indexed once into database.pkl, which ships with the app so
+it works immediately on deploy.
+
+Performance notes
+-----------------
+  * Only the first fp.MAX_QUERY_SECONDS of each query are analysed. Shazam-style
+    matching needs only a few seconds; decoding and processing a full multi-minute
+    clip is what previously blew past Streamlit Community Cloud's 1 GB RAM limit.
+  * The spectrogram and peaks are computed once per clip and reused for matching
+    and for every plot (previously they were computed three times per clip).
+  * Matplotlib figures are closed after rendering so they don't accumulate across
+    reruns, and the spectrogram is drawn with imshow on a frequency-cropped array
+    instead of a gouraud-shaded pcolormesh over the full mesh.
+  * Per-file decoding is wrapped in try/except so one unreadable upload can't take
+    the whole app down (matters for batch / many songs).
 """
-import os, io, pickle, tempfile
+
+import os
+import tempfile
+
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -21,19 +37,23 @@ import streamlit as st
 import fingerprint as fp
 
 st.set_page_config(page_title="Zapp-tain America", page_icon="🎵", layout="wide")
+
 DB_PATH = "database.pkl"
+MAX_FREQ_HZ = 4000          # only frequencies up to here are plotted
 
 
 # ----------------------------------------------------------------- load the indexed database
 def _load_pickle(path):
     """Load a pickle that may be gzip-compressed or plain."""
     import gzip
+    import pickle
     try:
         with gzip.open(path, "rb") as f:
             return pickle.load(f)
     except (OSError, gzip.BadGzipFile):
         with open(path, "rb") as f:
             return pickle.load(f)
+
 
 @st.cache_resource
 def load_db(path=DB_PATH):
@@ -45,38 +65,42 @@ def load_db(path=DB_PATH):
     return db
 
 
-def read_upload(uploaded):
-    """Save an uploaded file to disk and load it as mono audio at fp.SR."""
+def read_upload(uploaded, max_seconds=fp.MAX_QUERY_SECONDS):
+    """Save an uploaded file to disk and load up to `max_seconds` of mono audio."""
     suffix = os.path.splitext(uploaded.name)[1] or ".wav"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(uploaded.getbuffer()); path = tmp.name
     try:
-        y = fp.load_audio(path)
+        y = fp.load_audio(path, duration=max_seconds)
     finally:
         os.unlink(path)
     return y
 
 
 # ----------------------------------------------------------------- plotting helpers
-def plot_spectrogram(y):
-    f, t, S = fp.compute_spectrogram(y)
+def plot_spectrogram(f, t, S):
+    fmask = f <= MAX_FREQ_HZ
     fig, ax = plt.subplots(figsize=(7, 3))
-    ax.pcolormesh(t, f, S, shading="gouraud", cmap="magma", vmin=-60)
-    ax.set_ylim(0, 4000); ax.set_xlabel("time (s)"); ax.set_ylabel("frequency (Hz)")
+    ax.imshow(S[fmask], origin="lower", aspect="auto",
+              extent=[float(t[0]), float(t[-1]), 0.0, MAX_FREQ_HZ],
+              cmap="magma", vmin=-60, vmax=0)
+    ax.set_xlabel("time (s)"); ax.set_ylabel("frequency (Hz)")
     ax.set_title("Spectrogram")
     fig.tight_layout(); return fig
 
-def plot_constellation(y):
-    f, t, S = fp.compute_spectrogram(y); pk = fp.find_peaks(S)
+
+def plot_constellation(f, t, peaks):
     fig, ax = plt.subplots(figsize=(7, 3))
-    ax.scatter(t[pk[:, 1]], f[pk[:, 0]], s=8, c="k")
-    ax.set_ylim(0, 4000); ax.set_xlabel("time (s)"); ax.set_ylabel("frequency (Hz)")
-    ax.set_title(f"Constellation map ({len(pk)} peaks)")
+    if len(peaks):
+        ax.scatter(t[peaks[:, 1]], f[peaks[:, 0]], s=8, c="k")
+    ax.set_ylim(0, MAX_FREQ_HZ); ax.set_xlabel("time (s)"); ax.set_ylabel("frequency (Hz)")
+    ax.set_title(f"Constellation map ({len(peaks)} peaks)")
     fig.tight_layout(); return fig
+
 
 def plot_histogram(votes, db, best_label):
     fig, ax = plt.subplots(figsize=(7, 3))
-    if votes:
+    if votes and best_label in db.songs:
         sid = db.songs.index(best_label)
         h = votes.get(sid, {})
         if h:
@@ -87,6 +111,11 @@ def plot_histogram(votes, db, best_label):
     fig.tight_layout(); return fig
 
 
+def show_fig(col, fig):
+    """Render a figure into a column, then close it to free memory."""
+    col.pyplot(fig); plt.close(fig)
+
+
 # ----------------------------------------------------------------- UI
 st.title("🎵 Zapp-tain America - Audio Identifier")
 st.caption("Constellation peaks + combinatorial hashing + offset-histogram voting "
@@ -94,58 +123,78 @@ st.caption("Constellation peaks + combinatorial hashing + offset-histogram votin
 
 db = load_db()
 if db is None:
-    st.error("database.pkl not found. Run `python build_database.py songs/` first to index the song library.")
+    st.error("database.pkl not found. Build the song library into database.pkl first.")
     st.stop()
+
 st.success(f"Database loaded: {len(db.songs)} songs indexed, {len(db.index)} distinct hashes.")
 with st.expander("Songs in the database"):
     st.write(", ".join(db.songs))
 
+st.caption(f"Only the first {fp.MAX_QUERY_SECONDS}s of each clip are analysed "
+           "(enough to identify a song; keeps memory and CPU bounded).")
+
 mode = st.radio("Mode", ["Single clip", "Batch"], horizontal=True)
-threshold = st.slider("Match threshold (minimum aligned hashes to count as a match)", 1, 50, 10,
-                      help="A genuine match scores in the hundreds/thousands; an unknown song scores only "
-                           "a few. Anything below this is reported as 'not in database'. Raise it if "
-                           "unknown songs slip through, lower it if real matches are missed.")
+threshold = st.slider(
+    "Match threshold (minimum aligned hashes to count as a match)", 1, 50, 10,
+    help="A genuine match scores in the hundreds/thousands; an unknown song scores only "
+         "a few. Anything below this is reported as 'not in database'. Raise it if "
+         "unknown songs slip through, lower it if real matches are missed.")
 
 # ---------------- single clip ----------------
 if mode == "Single clip":
     up = st.file_uploader("Upload a query clip", type=["wav", "mp3", "m4a", "flac", "ogg"])
     if up is not None:
-        y = read_upload(up)
+        try:
+            y = read_upload(up)
+        except Exception as e:
+            st.error(f"Could not read this file: {e}")
+            st.stop()
+
         st.audio(up)
-        label, score, results, scatter, votes = db.match(y)
-        # always show the analysis plots
+
+        # compute the pipeline ONCE and reuse it for matching and all three plots
+        f, t, S = fp.compute_spectrogram(y)
+        peaks = fp.find_peaks(S)
+        label, score, results, votes = db.match_hashes(fp.make_hashes(peaks))
+
         c1, c2, c3 = st.columns(3)
-        c1.pyplot(plot_spectrogram(y))
-        c2.pyplot(plot_constellation(y))
+        show_fig(c1, plot_spectrogram(f, t, S))
+        show_fig(c2, plot_constellation(f, t, peaks))
         if label is not None:
-            c3.pyplot(plot_histogram(votes, db, label))
+            show_fig(c3, plot_histogram(votes, db, label))
 
         if label is None or score < threshold:
             best = f" (best guess '{label}' scored only {score})" if label else ""
             st.error(f"### ❌ Not in database{best}")
-            st.caption(f"No song cleared the threshold of {threshold} aligned hashes — "
+            st.caption(f"No song cleared the threshold of {threshold} aligned hashes - "
                        f"this clip does not appear to match any indexed song.")
         else:
-            st.markdown(f"## ✅ Prediction: **{label}**  &nbsp; (score = {score} aligned hashes)")
+            st.markdown(f"## ✅ Prediction: **{label}** &nbsp; (score = {score} aligned hashes)")
 
         if results:
             st.subheader("Top candidates")
-            st.dataframe(pd.DataFrame(results, columns=["song", "score", "best_offset(frames)"]).head(5),
-                         hide_index=True, use_container_width=True)
+            st.dataframe(
+                pd.DataFrame(results, columns=["song", "score", "best_offset(frames)"]).head(5),
+                hide_index=True, use_container_width=True)
 
 # ---------------- batch ----------------
 else:
-    ups = st.file_uploader("Upload one or more query clips", type=["wav", "mp3", "m4a", "flac", "ogg"],
+    ups = st.file_uploader("Upload one or more query clips",
+                           type=["wav", "mp3", "m4a", "flac", "ogg"],
                            accept_multiple_files=True)
     if ups:
         rows = []
         prog = st.progress(0.0)
         for i, up in enumerate(ups):
-            y = read_upload(up)
-            label, score, *_ = db.match(y)
-            pred = label if (label and score >= threshold) else "not_in_database"
+            try:
+                y = read_upload(up)
+                label, score, *_ = db.match(y)
+                pred = label if (label and score >= threshold) else "not_in_database"
+            except Exception as e:
+                pred = f"error: {e}"
             rows.append({"filename": up.name, "prediction": pred})
             prog.progress((i + 1) / len(ups))
+
         df = pd.DataFrame(rows, columns=["filename", "prediction"])
         st.dataframe(df, hide_index=True, use_container_width=True)
         csv = df.to_csv(index=False).encode()
