@@ -78,6 +78,27 @@ h2, h3, h4 {
     font-size: 0.8rem !important;
 }
 
+/* All widget labels (slider, radio group label, etc.) — force bright */
+.stSlider label,
+.stRadio > label,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span,
+label[data-testid="stWidgetLabel"],
+.stSlider [data-testid="stWidgetLabel"] p {
+    color: #C9D1D9 !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+}
+
+/* Slider current value number */
+.stSlider [data-testid="stThumbValue"],
+.stSlider [class*="StyledThumbValue"] {
+    color: var(--accent-purple) !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+}
+
 /* ============================================================
    BUTTONS
    ============================================================ */
@@ -178,35 +199,94 @@ h2, h3, h4 {
     color: var(--text-secondary) !important;
 }
 
-/* ============================================================
-   RADIO BUTTONS (mode selector)
-   ============================================================ */
-
-.stRadio > div {
-    background: var(--bg-secondary) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: var(--radius-md) !important;
-    padding: 4px !important;
-    display: inline-flex !important;
-    gap: 4px;
+/* "Browse files" button inside the uploader — darken it */
+[data-testid="stFileUploaderDropzone"] button,
+[data-testid="stFileUploaderDropzoneInput"] + button,
+[data-testid="stFileUploader"] button {
+    background: #1C2333 !important;
+    color: #8B949E !important;
+    border: 1px solid #30363D !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    transition: background var(--transition), border-color var(--transition),
+                color var(--transition) !important;
 }
 
+[data-testid="stFileUploaderDropzone"] button:hover,
+[data-testid="stFileUploader"] button:hover {
+    background: #243044 !important;
+    border-color: var(--accent-purple) !important;
+    color: #E6EDF3 !important;
+}
+
+/* ============================================================
+   RADIO BUTTONS (mode selector) — pill-shaped segmented control
+   Left option: rounded left corners only
+   Right option: rounded right corners only
+   No background fill on selection — only a bottom border accent
+   ============================================================ */
+
+/* Outer wrapper: thin border box, no fill */
+.stRadio > div {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    gap: 0 !important;
+    overflow: hidden;
+}
+
+/* Each label — base style */
 .stRadio label {
-    border-radius: var(--radius-sm) !important;
-    padding: 0.35rem 1rem !important;
-    color: var(--text-secondary) !important;
+    background: transparent !important;
+    padding: 0.45rem 1.4rem !important;
+    color: #C9D1D9 !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    border-right: 1px solid var(--border) !important;
     transition: background var(--transition), color var(--transition) !important;
     cursor: pointer;
 }
 
-.stRadio label:hover {
-    background: var(--bg-hover) !important;
-    color: var(--text-primary) !important;
+/* Last label has no right border */
+.stRadio label:last-child {
+    border-right: none !important;
 }
 
-/* selected radio */
-.stRadio [data-baseweb="radio"] input:checked + div {
-    background: var(--accent-purple) !important;
+/* Hover state */
+.stRadio label:hover {
+    background: rgba(124, 58, 237, 0.08) !important;
+    color: #E6EDF3 !important;
+}
+
+/* Hide the actual radio circle dot entirely */
+.stRadio [data-baseweb="radio"] > div:first-child {
+    display: none !important;
+}
+
+/* Selected state: purple bottom border + slightly lighter bg, NO fill */
+.stRadio [data-baseweb="radio"]:has(input:checked) > label,
+.stRadio [data-baseweb="radio"] input:checked ~ label,
+.stRadio label[data-checked="true"],
+.stRadio [aria-checked="true"] label {
+    background: rgba(124, 58, 237, 0.12) !important;
+    color: #E6EDF3 !important;
+    border-bottom: 2px solid var(--accent-purple) !important;
+    font-weight: 600 !important;
+}
+
+/* Streamlit wraps checked state differently — target the parent div */
+.stRadio [data-baseweb="radio"]:has(input:checked) {
+    background: rgba(124, 58, 237, 0.12) !important;
+    border-bottom: 2px solid var(--accent-purple) !important;
+}
+
+.stRadio [data-baseweb="radio"]:has(input:checked) label {
+    color: #E6EDF3 !important;
+    font-weight: 600 !important;
 }
 
 /* ============================================================
