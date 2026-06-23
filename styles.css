@@ -1,0 +1,496 @@
+/* ============================================================
+   Zapp-tain America — Custom Theme
+   Deep navy + electric purple + teal accent
+   All Streamlit elements are overridden here so app.py stays clean.
+   ============================================================ */
+
+/* ---- Google Font import ---- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* ---- CSS Variables ---- */
+:root {
+    --bg-primary:     #0D1117;
+    --bg-secondary:   #161B22;
+    --bg-card:        #1C2333;
+    --bg-hover:       #243044;
+
+    --text-primary:   #E6EDF3;
+    --text-secondary: #8B949E;
+    --text-muted:     #484F58;
+
+    --accent-purple:  #7C3AED;
+    --accent-purple-hover: #6D28D9;
+    --accent-purple-glow:  rgba(124, 58, 237, 0.25);
+
+    --accent-teal:    #14B8A6;
+    --accent-amber:   #F59E0B;
+    --accent-red:     #EF4444;
+
+    --border:         #30363D;
+    --border-hover:   #58A6FF;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+
+    --transition: 0.2s ease;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif !important;
+    color: var(--text-primary) !important;
+}
+
+.stApp {
+    background-color: var(--bg-primary) !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+h1 {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.5px;
+}
+
+h2, h3, h4 {
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+}
+
+/* caption / small text */
+[data-testid="stCaptionContainer"] p,
+.stCaption p {
+    color: var(--text-secondary) !important;
+    font-size: 0.8rem !important;
+}
+
+/* All widget labels (slider, radio group label, etc.) — force bright */
+.stSlider label,
+.stRadio > label,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span,
+label[data-testid="stWidgetLabel"],
+.stSlider [data-testid="stWidgetLabel"] p {
+    color: #C9D1D9 !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+}
+
+/* Slider current value number */
+.stSlider [data-testid="stThumbValue"],
+.stSlider [class*="StyledThumbValue"] {
+    color: var(--accent-purple) !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+/* Primary button */
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background: var(--accent-purple) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.55rem 1.6rem !important;
+    letter-spacing: 0.3px;
+    transition:
+        background var(--transition),
+        transform var(--transition),
+        box-shadow var(--transition) !important;
+    box-shadow: 0 0 0 0 var(--accent-purple-glow);
+}
+
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background: var(--accent-purple-hover) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px var(--accent-purple-glow) !important;
+}
+
+.stButton > button[kind="primary"]:active,
+.stButton > button[data-testid="baseButton-primary"]:active {
+    transform: translateY(0px) !important;
+    box-shadow: none !important;
+}
+
+/* Secondary / default button */
+.stButton > button[kind="secondary"],
+.stButton > button:not([kind="primary"]) {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 500 !important;
+    transition:
+        background var(--transition),
+        border-color var(--transition),
+        transform var(--transition) !important;
+}
+
+.stButton > button[kind="secondary"]:hover,
+.stButton > button:not([kind="primary"]):hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--border-hover) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Download button */
+.stDownloadButton > button {
+    background: var(--bg-card) !important;
+    color: var(--accent-teal) !important;
+    border: 1px solid var(--accent-teal) !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+    transition:
+        background var(--transition),
+        transform var(--transition),
+        box-shadow var(--transition) !important;
+}
+
+.stDownloadButton > button:hover {
+    background: rgba(20, 184, 166, 0.1) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.2) !important;
+}
+
+/* ============================================================
+   FILE UPLOADER
+   ============================================================ */
+
+[data-testid="stFileUploader"] {
+    background: var(--bg-card) !important;
+    border: 2px dashed var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.5rem !important;
+    transition: border-color var(--transition), background var(--transition) !important;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--accent-purple) !important;
+    background: var(--bg-hover) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] {
+    background: transparent !important;
+}
+
+[data-testid="stFileUploaderDropzone"] p {
+    color: var(--text-secondary) !important;
+}
+
+/* "Browse files" button inside the uploader — darken it */
+[data-testid="stFileUploaderDropzone"] button,
+[data-testid="stFileUploaderDropzoneInput"] + button,
+[data-testid="stFileUploader"] button {
+    background: #1C2333 !important;
+    color: #8B949E !important;
+    border: 1px solid #30363D !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    transition: background var(--transition), border-color var(--transition),
+                color var(--transition) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] button:hover,
+[data-testid="stFileUploader"] button:hover {
+    background: #243044 !important;
+    border-color: var(--accent-purple) !important;
+    color: #E6EDF3 !important;
+}
+
+/* ============================================================
+   RADIO BUTTONS (mode selector) — pill-shaped segmented control
+   Left option: rounded left corners only
+   Right option: rounded right corners only
+   No background fill on selection — only a bottom border accent
+   ============================================================ */
+
+/* Outer wrapper: thin border box, no fill */
+.stRadio > div {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    gap: 0 !important;
+    overflow: hidden;
+}
+
+/* Each label — base style */
+.stRadio label {
+    background: transparent !important;
+    padding: 0.45rem 1.4rem !important;
+    color: #C9D1D9 !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    border-right: 1px solid var(--border) !important;
+    transition: background var(--transition), color var(--transition) !important;
+    cursor: pointer;
+}
+
+/* Last label has no right border */
+.stRadio label:last-child {
+    border-right: none !important;
+}
+
+/* Hover state */
+.stRadio label:hover {
+    background: rgba(124, 58, 237, 0.08) !important;
+    color: #E6EDF3 !important;
+}
+
+/* Hide the actual radio circle dot entirely */
+.stRadio [data-baseweb="radio"] > div:first-child {
+    display: none !important;
+}
+
+/* Selected state: purple bottom border + slightly lighter bg, NO fill */
+.stRadio [data-baseweb="radio"]:has(input:checked) > label,
+.stRadio [data-baseweb="radio"] input:checked ~ label,
+.stRadio label[data-checked="true"],
+.stRadio [aria-checked="true"] label {
+    background: rgba(124, 58, 237, 0.12) !important;
+    color: #E6EDF3 !important;
+    border-bottom: 2px solid var(--accent-purple) !important;
+    font-weight: 600 !important;
+}
+
+/* Streamlit wraps checked state differently — target the parent div */
+.stRadio [data-baseweb="radio"]:has(input:checked) {
+    background: rgba(124, 58, 237, 0.12) !important;
+    border-bottom: 2px solid var(--accent-purple) !important;
+}
+
+.stRadio [data-baseweb="radio"]:has(input:checked) label {
+    color: #E6EDF3 !important;
+    font-weight: 600 !important;
+}
+
+/* ============================================================
+   SLIDER
+   ============================================================ */
+
+.stSlider [data-baseweb="slider"] [role="slider"] {
+    background: var(--accent-purple) !important;
+    border-color: var(--accent-purple) !important;
+    transition: transform var(--transition) !important;
+}
+
+.stSlider [data-baseweb="slider"] [role="slider"]:hover {
+    transform: scale(1.25) !important;
+}
+
+.stSlider [data-baseweb="slider"] [data-testid="stSliderTrackFill"] {
+    background: var(--accent-purple) !important;
+}
+
+/* ============================================================
+   ALERTS & STATUS BOXES
+   ============================================================ */
+
+/* Success */
+.stAlert[data-baseweb="notification"][kind="positive"],
+[data-testid="stNotification"][kind="positive"],
+div[data-baseweb="notification"] {
+    border-radius: var(--radius-md) !important;
+}
+
+/* Replicate the success/error/info box backgrounds */
+.stSuccess, [data-testid="stSuccess"] {
+    background: rgba(20, 184, 166, 0.12) !important;
+    border-left: 3px solid var(--accent-teal) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+}
+
+.stError, [data-testid="stError"] {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-left: 3px solid var(--accent-red) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+}
+
+.stInfo, [data-testid="stInfo"] {
+    background: rgba(124, 58, 237, 0.10) !important;
+    border-left: 3px solid var(--accent-purple) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+}
+
+.stWarning, [data-testid="stWarning"] {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-left: 3px solid var(--accent-amber) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ============================================================
+   EXPANDER
+   ============================================================ */
+
+[data-testid="stExpander"] {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    transition: border-color var(--transition) !important;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: var(--border-hover) !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+}
+
+/* ============================================================
+   DATAFRAME / TABLE
+   ============================================================ */
+
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    overflow: hidden;
+}
+
+[data-testid="stDataFrame"] th {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-testid="stDataFrame"] td {
+    color: var(--text-primary) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.85rem !important;
+}
+
+/* ============================================================
+   AUDIO PLAYER
+   ============================================================ */
+
+audio {
+    width: 100%;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--bg-card) !important;
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+
+.stProgress > div > div {
+    background: var(--bg-secondary) !important;
+    border-radius: 99px !important;
+}
+
+.stProgress > div > div > div {
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-teal)) !important;
+    border-radius: 99px !important;
+    transition: width 0.3s ease !important;
+}
+
+/* ============================================================
+   SPINNER
+   ============================================================ */
+
+.stSpinner > div {
+    border-top-color: var(--accent-purple) !important;
+}
+
+/* ============================================================
+   MATPLOTLIB FIGURES embedded via st.pyplot
+   ============================================================ */
+
+[data-testid="stImage"] img,
+.stPyplot img {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    transition: transform var(--transition), box-shadow var(--transition) !important;
+}
+
+[data-testid="stImage"] img:hover,
+.stPyplot img:hover {
+    transform: scale(1.015) !important;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.15) !important;
+}
+
+/* ============================================================
+   COLUMNS wrapper
+   ============================================================ */
+
+[data-testid="column"] {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1rem !important;
+    transition: border-color var(--transition), box-shadow var(--transition) !important;
+}
+
+[data-testid="column"]:hover {
+    border-color: var(--accent-purple) !important;
+    box-shadow: 0 4px 24px var(--accent-purple-glow) !important;
+}
+
+/* ============================================================
+   TOP-LEVEL PAGE PADDING  (breathing room)
+   ============================================================ */
+
+.block-container {
+    padding-top: 2rem !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+    max-width: 1100px !important;
+}
+
+/* ============================================================
+   SECTION DIVIDER  (inject via st.markdown)
+   ============================================================ */
+
+hr {
+    border: none !important;
+    border-top: 1px solid var(--border) !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ============================================================
+   PULSE ANIMATION — used on the identify button via class
+   ============================================================ */
+
+@keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0   var(--accent-purple-glow); }
+    70%  { box-shadow: 0 0 0 10px transparent; }
+    100% { box-shadow: 0 0 0 0   transparent; }
+}
+
+.pulse-btn button {
+    animation: pulse-ring 2s infinite !important;
+}
