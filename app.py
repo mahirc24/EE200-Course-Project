@@ -140,62 +140,111 @@ threshold = st.slider(
          "a few. Anything below this is reported as 'not in database'. Raise it if "
          "unknown songs slip through, lower it if real matches are missed.")
 
-# ---------------- single clip ----------------
+# ================================================================ SINGLE CLIP
 if mode == "Single clip":
     up = st.file_uploader("Upload a query clip", type=["wav", "mp3", "m4a", "flac", "ogg"])
+
+    # Reset stored results whenever a new file is uploaded
+    if "single_file_name" not in st.session_state:
+        st.session_state.single_file_name = None
+        st.session_state.single_result = None
+
     if up is not None:
-        try:
-            y = read_upload(up)
-        except Exception as e:
-            st.error(f"Could not read this file: {e}")
-            st.stop()
+        # Clear cached result if user swapped the file
+        if st.session_state.single_file_name != up.name:
+            st.session_state.single_file_name = up.name
+            st.session_state.single_result = None
 
         st.audio(up)
 
-        # compute the pipeline ONCE and reuse it for matching and all three plots
-        f, t, S = fp.compute_spectrogram(y)
-        peaks = fp.find_peaks(S)
-        label, score, results, votes = db.match_hashes(fp.make_hashes(peaks))
+        # ---- Run button ----
+        run = st.button("🎵 Identify Song", type="primary", use_container_width=False)
 
-        c1, c2, c3 = st.columns(3)
-        show_fig(c1, plot_spectrogram(f, t, S))
-        show_fig(c2, plot_constellation(f, t, peaks))
-        if label is not None:
-            show_fig(c3, plot_histogram(votes, db, label))
+        if run:
+            with st.spinner("Analysing clip…"):
+                try:
+                    y = read_upload(up)
+                    f, t, S = fp.compute_spectrogram(y)
+                    peaks = fp.find_peaks(S)
+                    label, score, results, votes = db.match_hashes(fp.make_hashes(peaks))
+                    st.session_state.single_result = dict(
+                        f=f, t=t, S=S, peaks=peaks,
+                        label=label, score=score,
+                        results=results, votes=votes,
+                    )
+                except Exception as e:
+                    st.error(f"Could not read this file: {e}")
 
-        if label is None or score < threshold:
-            best = f" (best guess '{label}' scored only {score})" if label else ""
-            st.error(f"### ❌ Not in database{best}")
-            st.caption(f"No song cleared the threshold of {threshold} aligned hashes - "
-                       f"this clip does not appear to match any indexed song.")
-        else:
-            st.markdown(f"## ✅ Prediction: **{label}** &nbsp; (score = {score} aligned hashes)")
+        # ---- Display results (persists until a new file is uploaded) ----
+        res = st.session_state.single_result
+        if res is not None:
+            f, t, S = res["f"], res["t"], res["S"]
+            peaks   = res["peaks"]
+            label, score, results, votes = (
+                res["label"], res["score"], res["results"], res["votes"]
+            )
 
-        if results:
-            st.subheader("Top candidates")
-            st.dataframe(
-                pd.DataFrame(results, columns=["song", "score", "best_offset(frames)"]).head(5),
-                hide_index=True, use_container_width=True)
+            c1, c2, c3 = st.columns(3)
+            show_fig(c1, plot_spectrogram(f, t, S))
+            show_fig(c2, plot_constellation(f, t, peaks))
+            if label is not None:
+                show_fig(c3, plot_histogram(votes, db, label))
 
-# ---------------- batch ----------------
+            if label is None or score < threshold:
+                best = f" (best guess '{label}' scored only {score})" if label else ""
+                st.error(f"### ❌ Not in database{best}")
+                st.caption(f"No song cleared the threshold of {threshold} aligned hashes - "
+                           f"this clip does not appear to match any indexed song.")
+            else:
+                st.markdown(f"## ✅ Prediction: **{label}** &nbsp; (score = {score} aligned hashes)")
+
+            if results:
+                st.subheader("Top candidates")
+                st.dataframe(
+                    pd.DataFrame(results, columns=["song", "score", "best_offset(frames)"]).head(5),
+                    hide_index=True, use_container_width=True)
+
+# ================================================================ BATCH
 else:
     ups = st.file_uploader("Upload one or more query clips",
                            type=["wav", "mp3", "m4a", "flac", "ogg"],
                            accept_multiple_files=True)
-    if ups:
-        rows = []
-        prog = st.progress(0.0)
-        for i, up in enumerate(ups):
-            try:
-                y = read_upload(up)
-                label, score, *_ = db.match(y)
-                pred = label if (label and score >= threshold) else "not_in_database"
-            except Exception as e:
-                pred = f"error: {e}"
-            rows.append({"filename": up.name, "prediction": pred})
-            prog.progress((i + 1) / len(ups))
 
-        df = pd.DataFrame(rows, columns=["filename", "prediction"])
-        st.dataframe(df, hide_index=True, use_container_width=True)
-        csv = df.to_csv(index=False).encode()
-        st.download_button("Download results.csv", csv, file_name="results.csv", mime="text/csv")
+    # Reset stored results whenever the file set changes
+    if "batch_file_names" not in st.session_state:
+        st.session_state.batch_file_names = []
+        st.session_state.batch_result_df  = None
+
+    if ups:
+        current_names = [u.name for u in ups]
+        if current_names != st.session_state.batch_file_names:
+            st.session_state.batch_file_names = current_names
+            st.session_state.batch_result_df  = None
+
+        st.info(f"{len(ups)} file(s) ready to process.")
+
+        # ---- Run button ----
+        run_batch = st.button("🚀 Run Batch", type="primary", use_container_width=False)
+
+        if run_batch:
+            rows = []
+            prog = st.progress(0.0)
+            with st.spinner("Processing clips…"):
+                for i, up in enumerate(ups):
+                    try:
+                        y = read_upload(up)
+                        label, score, *_ = db.match(y)
+                        pred = label if (label and score >= threshold) else "not_in_database"
+                    except Exception as e:
+                        pred = f"error: {e}"
+                    rows.append({"filename": up.name, "prediction": pred})
+                    prog.progress((i + 1) / len(ups))
+            st.session_state.batch_result_df = pd.DataFrame(rows, columns=["filename", "prediction"])
+
+        # ---- Display results ----
+        df = st.session_state.batch_result_df
+        if df is not None:
+            st.dataframe(df, hide_index=True, use_container_width=True)
+            csv = df.to_csv(index=False).encode()
+            st.download_button("Download results.csv", csv,
+                               file_name="results.csv", mime="text/csv")
